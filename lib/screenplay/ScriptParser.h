@@ -1,7 +1,6 @@
 #ifndef SCREENPLAY_SCRIPTPARSER_H
 #define SCREENPLAY_SCRIPTPARSER_H
 
-#include <iostream>
 #include <string>
 
 #include <yaml-cpp/yaml.h>
@@ -15,10 +14,13 @@
  */
 class ScriptParser {
 public:
-    std::vector<Scene *> * parseScreenplay(const std::string& screenplayPathStr);
+    std::vector<Scene *> *parseScreenplay(const std::string &screenplayPathStr);
+
 private:
-    static std::vector<DirectionVisitable *> * parseDirections(const YAML::Node& directionsValue);
-    static ClickRegion * parseClickTarget(const YAML::Node& clickTargetValue);
+    static std::vector<DirectionVisitable *> *
+    parseDirections(const std::string &basePath, const YAML::Node &directionsValue);
+
+    static ClickRegion *parseClickTarget(const std::string &basePath, const YAML::Node &clickTargetValue);
 };
 
 

@@ -1,26 +1,30 @@
 #include "ScreenModel.h"
 
-#include <opencv2/imgproc.hpp>
 #include <iostream>
-#include <math.h>
+#include <filesystem>
+#include <rfb/keysym.h>
 
 #define DUMMY_CLICK_LOCATION 0x07FFF
-
-
-MatchInfo ScreenModel::findTemplate(const std::string& templatePath) {
-    return findTemplate(templatePath, TM_SQDIFF);
-}
 
 MatchInfo ScreenModel::findTemplate(const std::string& templatePath, int matchMethod) {
     readScreen();
 
     //std::cerr << "Try to read screen as a Mat" << std::endl;
 
-    Mat screen(Size(rfb->width, rfb->height), CV_8UC3, screenBuffer->buffer, Mat::AUTO_STEP);
+    cv::Mat screen(
+            cv::Size(rfb->width, rfb->height),
+            CV_8UC3,
+            screenBuffer->buffer,
+            cv::Mat::AUTO_STEP
+    );
+
+    // color in OpenCV is BGR - convert the RGB expected from ScreenModel
+    cv::cvtColor(screen, screen, COLOR_RGB2BGR);
+    //cv::imwrite("lastframe_cv.png", screen, {IMWRITE_PNG_COMPRESSION, 100});
 
     //std::cerr << "Now read path [" << templatePath << "]" << std::endl;
-
     Mat matchMe = imread(templatePath, IMREAD_COLOR);
+    //cv::imwrite("lasttemplate_cv.png", matchMe);
 
     //std::cerr << "red." << std::endl;
 
@@ -153,7 +157,7 @@ int ScreenModel::saveScreen(FILE * file) {
 
     tjhandle handle = tjInitCompress();
 
-    if(handle == NULL) {
+    if(!handle) {
         const char *err = (const char *) tjGetErrorStr();
         cerr << "TJ Error: " << err << " UNABLE TO INIT TJ Compressor Object" << endl;
         return -1;
@@ -163,7 +167,7 @@ int ScreenModel::saveScreen(FILE * file) {
     int flags = 0;
     int nbands = 3;
 
-    unsigned char* jpegBuf = NULL;
+    unsigned char* jpegBuf = nullptr;
 
     int width = rfb->width;
     int height = rfb->height;
@@ -223,16 +227,21 @@ ScreenModel::~ScreenModel() {
     free(screenBuffer);
 }
 
-static int matches(MatchInfo match, double minimumConfidence) {
+static int matches(const MatchInfo& match, double minimumConfidence) {
     std::cerr << "matching... how confident? " << match.confidence << std::endl;
-    return !isinf(match.confidence) && (0 < (match.confidence - minimumConfidence));
+    return match.confidence >= minimumConfidence;
 }
 
-int ScreenModel::findFeature(std::string featurePath, double minimumConfidence) {
+int ScreenModel::findFeature(const std::string& featurePath, double minimumConfidence) {
     return matches(findTemplate(featurePath), minimumConfidence);
 }
 
-int ScreenModel::findAndClickFeature(std::string featurePath, double minimumConfidence) {
+int ScreenModel::findAndClickFeature(const std::string& featurePath, double minimumConfidence) {
+    if (!std::filesystem::exists(std::filesystem::path(featurePath))) {
+        std::cerr << "Nonexistent Feature File: " << featurePath << std::endl;
+        return 0;
+    }
+
     MatchInfo match = findTemplate(featurePath);
 
     if (!matches(match, minimumConfidence)) {

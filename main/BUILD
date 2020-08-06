@@ -26,13 +26,3 @@ cc_binary(
         "//lib:libjpeg-turbo",
     ],
 )
-
-cc_binary(
-    name = "test-matcher",
-    srcs = [
-        "matcher_test.cpp",
-    ],
-    deps = [
-        "//lib:screenplay",
-    ],
-)

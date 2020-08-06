@@ -1,8 +1,8 @@
 #include "ScriptParser.h"
 
+#include <filesystem>
 #include <cfloat>
 #include <cmath>
-#include <filesystem>
 #include <stdexcept>
 
 namespace fs = std::filesystem;
@@ -11,7 +11,7 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
     auto results = new std::vector<Scene *>;
     YAML::Node config = YAML::LoadFile(screenplayPathStr);
 
-    fs::path screenplayPathPath(screenplayPathStr);
+    fs::path playPath(screenplayPathStr);
 
     if (config.IsSequence()) {
         for (const auto &scene : config) {
@@ -25,24 +25,20 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
                 double confidence = 0;
                 std::vector<DirectionVisitable *> *directions = nullptr;
 
-                for (const auto& keyValue : scene) {
+                for (const auto &keyValue : scene) {
                     auto key = keyValue.first.as<std::string>();
 
                     if (key == "step") {
                         name = keyValue.second.as<std::string>();
                         hasName = true;
                     } else if (key == "image") {
-                        path = screenplayPathPath
-                                .parent_path()
-                                .append(keyValue.second.as<std::string>())
-                                .u8string();
-
+                        path = playPath.parent_path().append(keyValue.second.as<std::string>()).u8string();
                         hasPath = true;
                     } else if (key == "confidence") {
                         confidence = keyValue.second.as<double>();
                         hasConfidence = true;
                     } else if (key == "directions") {
-                        directions = parseDirections(keyValue.second);
+                        directions = parseDirections(playPath.parent_path().u8string(), keyValue.second);
                     }
                 }
 
@@ -65,7 +61,10 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
     return results;
 }
 
-std::vector<DirectionVisitable *> *ScriptParser::parseDirections(const YAML::Node& directionsValue) {
+std::vector<DirectionVisitable *> *ScriptParser::parseDirections(
+        const std::string &basePath,
+        const YAML::Node &directionsValue
+) {
     auto directions = new std::vector<DirectionVisitable *>;
 
     for (const auto &directionNode: directionsValue) {
@@ -74,14 +73,15 @@ std::vector<DirectionVisitable *> *ScriptParser::parseDirections(const YAML::Nod
                 auto key = dirKV.first.as<std::string>();
 
                 if (key == "clickTarget") {
-                    auto clickAction = parseClickTarget(dirKV.second);
+                    auto clickAction = parseClickTarget(basePath, dirKV.second);
                     if (clickAction) {
                         directions->push_back(clickAction);
                     } else {
                         // Invalid YAML - the click isn't properly formed
                         std::stringstream errString;
                         auto mark = dirKV.second.Mark();
-                        errString << "Malformed clickTarget object at line " << mark.line << ", col " << mark.column << endl;
+                        errString << "Malformed clickTarget object at line " << mark.line << ", col " << mark.column
+                                  << endl;
 
                         throw std::runtime_error(errString.str());
                     }
@@ -99,7 +99,10 @@ std::vector<DirectionVisitable *> *ScriptParser::parseDirections(const YAML::Nod
     return directions;
 }
 
-ClickRegion *ScriptParser::parseClickTarget(const YAML::Node& clickTargetValue) {
+ClickRegion *ScriptParser::parseClickTarget(
+        const std::string &basePath,
+        const YAML::Node &clickTargetValue
+) {
     if (clickTargetValue.IsMap()) {
         std::string image;
         auto confidence = DBL_MAX; // Default: unreasonably high confidence, the highest possible double
@@ -109,7 +112,8 @@ ClickRegion *ScriptParser::parseClickTarget(const YAML::Node& clickTargetValue) 
             auto key = kv.first.as<std::string>();
 
             if (key == "image") {
-                image = kv.second.as<std::string>();
+                image = fs::path(basePath).append(
+                        kv.second.as<std::string>()).u8string(); // append supplied path to base
                 hasImage = true;
             } else if (key == "confidence") {
                 confidence = kv.second.as<double>();
