@@ -146,3 +146,21 @@ cmake_external(
         ":libz",
     ],
 )
+
+cc_library(
+    name = "screenplay",
+    srcs = glob(["screenplay/**/*.cpp"]),
+    hdrs = glob(["screenplay/**/*.h"]),
+    linkopts = [
+        "-lopencv_core",
+        "-lopencv_imgproc",
+        "-lopencv_imgcodecs",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":libjpeg-turbo",
+        ":libvnc",
+        ":opencv",
+        "@cc_yaml//:yaml-cpp",
+    ],
+)

@@ -1,5 +1,5 @@
-#include "main/Scene.h"
-#include "main/operations/PerformDirections.h"
+#include "lib/screenplay/Scene.h"
+#include "lib/screenplay/operations/PerformDirections.h"
 #include <filesystem>
 #include <iostream>
 

@@ -4,8 +4,8 @@
 #include <string>
 #include <utility>
 
-#include "main/DirectionVisitable.h"
-#include "main/DirectionVisitor.h"
+#include "lib/screenplay/DirectionVisitable.h"
+#include "lib/screenplay/DirectionVisitor.h"
 
 class ClickRegion : public DirectionVisitable {
 public:

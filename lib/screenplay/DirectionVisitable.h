@@ -1,7 +1,7 @@
 #ifndef SCREENPLAY_DIRECTIONVISITABLE_H
 #define SCREENPLAY_DIRECTIONVISITABLE_H
 
-#include "main/DirectionVisitor.h"
+#include "lib/screenplay/DirectionVisitor.h"
 
 class DirectionVisitable {
 public:

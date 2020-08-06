@@ -224,6 +224,7 @@ ScreenModel::~ScreenModel() {
 }
 
 static int matches(MatchInfo match, double minimumConfidence) {
+    std::cerr << "matching... how confident? " << match.confidence << std::endl;
     return !isinf(match.confidence) && (0 < (match.confidence - minimumConfidence));
 }
 

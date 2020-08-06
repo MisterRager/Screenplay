@@ -8,15 +8,15 @@
 
 #include <rfb/rfbclient.h>
 
-#include "ScriptParser.h"
-#include "ScreenModel.h"
-#include "Scene.h"
-#include "DirectionVisitable.h"
+#include "lib/screenplay/ScriptParser.h"
+#include "lib/screenplay/ScreenModel.h"
+#include "lib/screenplay/Scene.h"
+#include "lib/screenplay/DirectionVisitable.h"
 
-#include "directions/ClickRegion.h"
-#include "directions/PressKey.h"
-#include "operations/PerformDirections.h"
-#include "operations/PrintDirections.h"
+#include "lib/screenplay/directions/ClickRegion.h"
+#include "lib/screenplay/directions/PressKey.h"
+#include "lib/screenplay/operations/PerformDirections.h"
+#include "lib/screenplay/operations/PrintDirections.h"
 
 using namespace cv;
 using namespace std;
@@ -88,9 +88,9 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
             int oldStep = currentStep;
 
             if (currentStep == -1) {
-                for (int k = 0, stepCount = script.size(); k < stepCount && k != currentStep; k++) {
+                for (int k = 0, stepCount = script.get()->size(); k < stepCount && k != currentStep; k++) {
                     std::cerr << "Check if screen [" << k << "] is active" << std::endl;
-                    if (script[k]->isActive(screenModel)) {
+                    if (script.get()->at(k)->isActive(screenModel)) {
                         std::cerr << "Screen " << k << " is active." << std::endl;
                         currentStep = k;
                     }
@@ -107,16 +107,16 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
 
 
             std::cerr << "Check if current step is active for using, now (" << currentStep << ")" << std::endl;
-            if (script[currentStep]->isActive(screenModel)) {
+            if (script.get()->at(currentStep)->isActive(screenModel)) {
                 std::cerr << "Perfoming step " << currentStep << std::endl;
-                if (script[currentStep]->perform(screenModel)) {
+                if (script.get()->at(currentStep)->perform(screenModel)) {
                     cerr << "Scene " << currentStep << " performed" << endl;
                 } else {
                     cerr << "Error performing scene " << currentStep << endl;
                 }
             } else {
                 std::cerr << "Ok, now checking if next step is ready " << currentStep + 1 << std::endl;
-                if (script[currentStep + 1]->isActive(screenModel)) {
+                if (script.get()->at(currentStep + 1)->isActive(screenModel)) {
                     currentStep += 1;
                     cerr << "Moving to step " << currentStep;
                 }
@@ -141,9 +141,9 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             }
 
-        } while ((script.size() - currentStep) > 0);
+        } while ((script.get()->size() - currentStep) > 0);
 
-        cerr << "Done with rules at stage" << currentStep << " out of " << script.size() << endl;
+        cerr << "Done with rules at stage" << currentStep << " out of " << script.get()->size() << endl;
         quitting = 1;
     };
 

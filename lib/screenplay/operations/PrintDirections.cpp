@@ -2,8 +2,8 @@
 // Created by guile on 7/26/20.
 //
 
-#include "PrintDirections.h"
-#include "main/directions/ClickRegion.h"
+#include "lib/screenplay/operations/PrintDirections.h"
+#include "lib/screenplay/directions/ClickRegion.h"
 #include <iostream>
 
 int PrintDirections::visit(const class ClickRegion & clickRegion) const {

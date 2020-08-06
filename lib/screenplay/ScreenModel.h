@@ -39,7 +39,7 @@ private:
     MatchInfo findTemplate(const std::string& templatePath);
 
 public:
-    ScreenModel(rfbClient * rfbClient);
+    explicit ScreenModel(rfbClient * rfbClient);
     ~ScreenModel();
 
     int saveScreen(FILE * path);

@@ -3,14 +3,14 @@
 
 
 #include <cstdint>
-#include "main/DirectionVisitable.h"
-#include "main/DirectionVisitor.h"
+#include "lib/screenplay/DirectionVisitable.h"
+#include "lib/screenplay/DirectionVisitor.h"
 
 class PressKey : public DirectionVisitable {
 public:
     explicit PressKey(uint32_t key): DirectionVisitable(), key(key) {}
 
-    virtual int visit(const DirectionVisitor & visitor) const override;
+    [[nodiscard]] int visit(const DirectionVisitor & visitor) const override;
 
     uint32_t key;
 };
