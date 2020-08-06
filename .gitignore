@@ -1,0 +1,6 @@
+.cljwb
+.idea
+.ijwb
+bazel-bin
+bazel-out
+bazel-screenplay
