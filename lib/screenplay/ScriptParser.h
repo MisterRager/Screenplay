@@ -12,7 +12,9 @@
  */
 class ScriptParser {
 public:
-    std::vector<Scene *> *parseScreenplay(const std::string &screenplayPathStr);
+    std::shared_ptr<std::vector<std::shared_ptr<Scene>>> parseScreenplay(
+            const std::string &screenplayPathStr
+    );
 
 private:
     static std::shared_ptr<std::vector<std::shared_ptr<DirectionVisitable>>> parseDirections(
@@ -20,7 +22,7 @@ private:
             const YAML::Node &directionsValue
     );
 
-    static shared_ptr<ClickRegion> parseClickTarget(
+    static std::shared_ptr<ClickRegion> parseClickTarget(
             const std::string &basePath,
             const YAML::Node &clickTargetValue
     );

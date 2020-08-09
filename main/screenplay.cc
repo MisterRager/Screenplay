@@ -54,7 +54,7 @@ static int writeFrameToFile(rfbClient *client, char *framePath) {
 
 const char *FRAME_FILENAME = "lastframe.jpg";
 
-void loop(shared_ptr<rfbClient> client, shared_ptr<vector<Scene *>> script) {
+void loop(shared_ptr<rfbClient> client, shared_ptr<vector<shared_ptr<Scene>>> script) {
     int quitting = 0;
 
     auto executeScript = [&client, &quitting, &script]() {
@@ -206,10 +206,10 @@ static void printScreenplay(const vector<Scene *> &script) {
 
 int main(int argc, char **argv) {
     cout << "Try " << argv[1] << endl;
-    shared_ptr<vector<Scene *>> scenes;
+    shared_ptr<vector<shared_ptr<Scene>>> scenes;
 
     try {
-        scenes = shared_ptr<vector<Scene *>>(ScriptParser().parseScreenplay(argv[1]));
+        scenes = ScriptParser().parseScreenplay(argv[1]);
     } catch (std::string &error) {
         std::cerr << "Error parsing YAML: " << error << endl;
         exit(1);

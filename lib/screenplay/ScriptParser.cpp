@@ -13,8 +13,10 @@
 
 namespace fs = std::filesystem;
 
-std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenplayPathStr) {
-    auto results =  new std::vector<Scene *>;
+std::shared_ptr<std::vector<std::shared_ptr<Scene>>> ScriptParser::parseScreenplay(
+        const std::string &screenplayPathStr
+) {
+    auto results = std::make_shared<std::vector<std::shared_ptr<Scene>>>();
     YAML::Node config = YAML::LoadFile(screenplayPathStr);
 
     fs::path playPath(screenplayPathStr);
@@ -52,7 +54,7 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
 
                 if (hasName && hasPath && hasConfidence && hasDirections) {
                     results->push_back(
-                            new Scene(
+                            std::make_shared<Scene>(
                                     name,
                                     path,
                                     confidence,
