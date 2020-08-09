@@ -17,6 +17,7 @@
 #include "lib/screenplay/directions/PressKey.h"
 #include "lib/screenplay/operations/PerformDirections.h"
 #include "lib/screenplay/operations/PrintDirections.h"
+#include "lib/screenplay/Agent.h"
 
 using namespace cv;
 using namespace std;
@@ -25,17 +26,17 @@ typedef struct {
     int frameCount;
     int lastSavedFrame;
     int lastRulesFrame;
-    ScreenModel * screenModel;
+    shared_ptr<ScreenModel> screenModel;
 } CurrentVncState;
 
 /*
   Convenience function: get the client data for the current vnc session.
  */
-static CurrentVncState * getAppState(rfbClient * client) {
+static CurrentVncState *getAppState(rfbClient *client) {
     return (CurrentVncState *) rfbClientGetClientData(client, client);
 }
 
-static int writeFrameToFile(rfbClient * client, char * framePath) {
+static int writeFrameToFile(rfbClient *client, char *framePath) {
     FILE *file = fopen(framePath, "wb");
 
     if (!file) {
@@ -43,7 +44,7 @@ static int writeFrameToFile(rfbClient * client, char * framePath) {
         return -1;
     }
 
-    CurrentVncState * state = getAppState(client);
+    CurrentVncState *state = getAppState(client);
 
     int result = state->screenModel->saveScreen(file);
     fclose(file);
@@ -51,16 +52,16 @@ static int writeFrameToFile(rfbClient * client, char * framePath) {
     return result;
 }
 
-const char * FRAME_FILENAME = "lastframe.jpg";
+const char *FRAME_FILENAME = "lastframe.jpg";
 
 void loop(shared_ptr<rfbClient> client, shared_ptr<vector<Scene *>> script) {
     int quitting = 0;
 
     auto executeScript = [&client, &quitting, &script]() {
-        CurrentVncState * state = getAppState(client.get());
+        CurrentVncState *state = getAppState(client.get());
         int currentStep = -1;
 
-        ScreenModel * screenModel = state->screenModel;
+        auto agent = make_unique<Agent>(state->screenModel);
 
         do {
             cerr << "Current Stage: " << currentStep << endl;
@@ -90,7 +91,7 @@ void loop(shared_ptr<rfbClient> client, shared_ptr<vector<Scene *>> script) {
             if (currentStep == -1) {
                 for (int k = 0, stepCount = script->size(); k < stepCount && k != currentStep; k++) {
                     std::cerr << "Check if screen [" << k << "] is active" << std::endl;
-                    if (script->at(k)->isActive(screenModel)) {
+                    if (agent->isActive(*script->at(k))) {
                         std::cerr << "Screen " << k << " is active." << std::endl;
                         currentStep = k;
                     }
@@ -107,16 +108,16 @@ void loop(shared_ptr<rfbClient> client, shared_ptr<vector<Scene *>> script) {
 
 
             std::cerr << "Check if current step is active for using, now (" << currentStep << ")" << std::endl;
-            if (script->at(currentStep)->isActive(screenModel)) {
+            if (agent->isActive(*script->at(currentStep))) {
                 std::cerr << "Perfoming step " << currentStep << std::endl;
-                if (script->at(currentStep)->perform(screenModel)) {
+                if (agent->perform(*script->at(currentStep))) {
                     cerr << "Scene " << currentStep << " performed" << endl;
                 } else {
                     cerr << "Error performing scene " << currentStep << endl;
                 }
             } else {
                 std::cerr << "Ok, now checking if next step is ready " << currentStep + 1 << std::endl;
-                if (script->at(currentStep + 1)->isActive(screenModel)) {
+                if (agent->isActive(*script->at(currentStep + 1))) {
                     currentStep += 1;
                     cerr << "Moving to step " << currentStep;
                 }
@@ -141,15 +142,15 @@ void loop(shared_ptr<rfbClient> client, shared_ptr<vector<Scene *>> script) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(2000));
             }
 
-        } while ((script.get()->size() - currentStep) > 0);
+        } while ((script->size() - currentStep) > 0);
 
-        cerr << "Done with rules at stage" << currentStep << " out of " << script.get()->size() << endl;
+        cerr << "Done with rules at stage" << currentStep << " out of " << script->size() << endl;
         quitting = 1;
     };
 
     auto saveFrames = [&client, &quitting]() {
         while (!quitting) {
-            CurrentVncState * state = getAppState(client.get());
+            CurrentVncState *state = getAppState(client.get());
 
             if (state->frameCount > state->lastSavedFrame) {
                 writeFrameToFile(client.get(), (char *) FRAME_FILENAME);
@@ -174,19 +175,20 @@ void loop(shared_ptr<rfbClient> client, shared_ptr<vector<Scene *>> script) {
     frameSaver.join();
 }
 
-static void increaseFrameCounter(rfbClient * client, int x, int y, int width, int height) {
-    CurrentVncState * state = getAppState(client);
+static void increaseFrameCounter(rfbClient *client, int x, int y, int width, int height) {
+    CurrentVncState *state = getAppState(client);
     state->frameCount += 1;
 }
 
-static void printScreenplay(const vector<Scene *> & script) {
+static void printScreenplay(const vector<Scene *> &script) {
     int sceneN = 0;
 
     PrintDirections printer;
 
     for (auto scene : script) {
         cout << "Scene " << sceneN++ << endl;
-        cout << "Scene name: " << scene->name << " Template image [" << scene->matchTemplatePath << "] Confidence: " << scene->matchCertainty << endl;
+        cout << "Scene name: " << scene->name << " Template image [" << scene->matchTemplatePath << "] Confidence: "
+             << scene->matchCertainty << endl;
         //cout << scene->directions->size() << " directions on the scene" << std::endl;
 
         for (auto direction : *scene->directions) {
@@ -202,13 +204,13 @@ static void printScreenplay(const vector<Scene *> & script) {
     }
 }
 
-int main(int argc, char ** argv) {
+int main(int argc, char **argv) {
     cout << "Try " << argv[1] << endl;
     shared_ptr<vector<Scene *>> scenes;
 
     try {
         scenes = shared_ptr<vector<Scene *>>(ScriptParser().parseScreenplay(argv[1]));
-    } catch (std::string & error) {
+    } catch (std::string &error) {
         std::cerr << "Error parsing YAML: " << error << endl;
         exit(1);
     }
@@ -236,14 +238,14 @@ int main(int argc, char ** argv) {
     state.frameCount = 0;
     state.lastRulesFrame = 0;
     state.lastSavedFrame = 0;
-    state.screenModel = new ScreenModel(vnc);
+    state.screenModel = make_shared<ScreenModel>(vnc);
 
     rfbClientSetClientData(vnc.get(), vnc.get(), &state);
 
     cerr << "Connecting!" << endl;
 
     int argcFake = 2;
-    char * argvFake[3] = { argv[0], argv[2], argv[3] };
+    char *argvFake[3] = {argv[0], argv[2], argv[3]};
 
     if (!rfbInitClient(vnc.get(), &argcFake, argvFake)) {
         std::cerr << "Error initializing connection: " << strerror(errno) << endl;

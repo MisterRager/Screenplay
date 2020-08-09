@@ -13,10 +13,11 @@ class PerformDirections : public DirectionVisitor {
 private:
     shared_ptr<ScreenModel> client;
 public:
-    explicit PerformDirections(ScreenModel * client) : client(client){};
-    int visit(const ClickRegion & clickRegion) const override;
-    int visit(const PressKey & pressKey) const override;
-    int visit(const EnterText & enterText) const override;
+    explicit PerformDirections(shared_ptr<ScreenModel> client) : client(std::move(client)){};
+
+    [[nodiscard]] int visit(const ClickRegion & clickRegion) const override;
+    [[nodiscard]] int visit(const PressKey & pressKey) const override;
+    [[nodiscard]] int visit(const EnterText & enterText) const override;
 };
 
 

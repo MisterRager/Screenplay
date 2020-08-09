@@ -27,20 +27,10 @@ public:
 
     ~Scene();
 
-    std::string name;
-    std::string matchTemplatePath;
+    const std::string name;
+    const std::string matchTemplatePath;
     double matchCertainty;
     vector<DirectionVisitable *> * directions;
-    /*
-     * Check to see if the current "Scene" is active. Return 1 if true, 0 if not.
-     */
-    int isActive(ScreenModel * screenMatcher);
-
-    /**
-     * Do the actions for this "Scene"
-     * @return 1 if success
-     */
-    int perform(ScreenModel * client);
 };
 
 
