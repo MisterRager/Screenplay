@@ -10,15 +10,13 @@
 #include "ScreenModel.h"
 #include "DirectionVisitable.h"
 
-using namespace std;
-
 class Scene {
 public:
     Scene(
             std::string name,
             std::string templatePath,
             double templateCertainty,
-            std::shared_ptr<vector<DirectionVisitable *>> directionList
+            std::shared_ptr<std::vector<std::shared_ptr<DirectionVisitable>>> directionList
     ) :
     name(std::move(name)),
     matchTemplatePath(std::move(templatePath)),
@@ -26,12 +24,10 @@ public:
     directions(std::move(directionList))
     {};
 
-    ~Scene();
-
     const std::string name;
     const std::string matchTemplatePath;
     double matchCertainty;
-    std::shared_ptr<vector<DirectionVisitable *>> directions;
+    std::shared_ptr<std::vector<std::shared_ptr<DirectionVisitable>>> directions;
 };
 
 

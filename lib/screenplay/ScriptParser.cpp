@@ -30,7 +30,7 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
 
                 std::string name, path;
                 double confidence = 0;
-                shared_ptr<std::vector<DirectionVisitable *>> directions = nullptr;
+                shared_ptr<std::vector<shared_ptr<DirectionVisitable>>> directions = nullptr;
 
                 for (const auto &keyValue : scene) {
                     auto key = keyValue.first.as<std::string>();
@@ -67,11 +67,11 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
     return results;
 }
 
-std::shared_ptr<std::vector<DirectionVisitable *>> ScriptParser::parseDirections(
+std::shared_ptr<std::vector<shared_ptr<DirectionVisitable>>> ScriptParser::parseDirections(
         const std::string &basePath,
         const YAML::Node &directionsValue
 ) {
-    auto directions = make_shared<std::vector<DirectionVisitable *>>();
+    auto directions = make_shared<std::vector<std::shared_ptr<DirectionVisitable>>>();
 
     for (const auto &directionNode: directionsValue) {
         if (directionNode.IsMap()) {
@@ -95,11 +95,11 @@ std::shared_ptr<std::vector<DirectionVisitable *>> ScriptParser::parseDirections
                     auto input = dirKV.second.as<std::string>();
 
                     for (char const &c: input) {
-                        directions->push_back(new PressKey(0xFF00 | std::abs(c)));
+                        directions->push_back(make_shared<PressKey>(0xFF00 | std::abs(c)));
                     }
                 } else if (key == "enterText") {
                     std::cerr << directions->size() << " directions becomes..." << std::endl;
-                    directions->push_back(new EnterText(dirKV.second.as<std::string>()));
+                    directions->push_back(make_shared<EnterText>(dirKV.second.as<std::string>()));
                 }
             }
         }
@@ -108,7 +108,7 @@ std::shared_ptr<std::vector<DirectionVisitable *>> ScriptParser::parseDirections
     return directions;
 }
 
-ClickRegion *ScriptParser::parseClickTarget(
+shared_ptr<ClickRegion> ScriptParser::parseClickTarget(
         const std::string &basePath,
         const YAML::Node &clickTargetValue
 ) {
@@ -131,7 +131,7 @@ ClickRegion *ScriptParser::parseClickTarget(
         }
 
         if (hasImage && hasConfidence) {
-            return new ClickRegion(image, confidence);
+            return make_shared<ClickRegion>(image, confidence);
         }
     }
     return nullptr;
