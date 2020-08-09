@@ -19,10 +19,10 @@ bool Agent::isActive(const Scene &scene) {
 }
 
 bool Agent::perform(const Scene &scene) {
-    auto performer = new PerformDirections(screen);
+    PerformDirections performer(screen);
 
     for (const auto &direction : *scene.directions) {
-        if (!direction->visit(*performer)) {
+        if (!direction->visit(performer)) {
             std::cerr << "Error performing direction!" << std::endl;
             return true;
         }
