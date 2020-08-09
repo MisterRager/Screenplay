@@ -6,8 +6,6 @@
 #include <yaml-cpp/yaml.h>
 
 #include "Scene.h"
-#include "directions/ClickRegion.h"
-#include "directions/PressKey.h"
 
 /**
  * Parse a "script" - a YAML document describing a list of "Scene" objects

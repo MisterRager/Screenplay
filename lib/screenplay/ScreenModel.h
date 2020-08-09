@@ -32,17 +32,15 @@ public:
 
 class ScreenModel {
 private:
-    rfbClient *rfb;
-    ScreenBuffer *screenBuffer;
+    shared_ptr<rfbClient> rfb;
+    unique_ptr<ScreenBuffer> screenBuffer;
 
     void readScreen();
 
     MatchInfo findTemplate(const std::string &templatePath, int matchMethod = TM_SQDIFF);
 
 public:
-    explicit ScreenModel(rfbClient *rfbClient);
-
-    ~ScreenModel();
+    explicit ScreenModel(shared_ptr<rfbClient> rfbClient);
 
     int saveScreen(FILE *path);
 
@@ -51,6 +49,8 @@ public:
     int findAndClickFeature(const std::string &featurePath, double minimumConfidence);
 
     int sendKey(uint32_t key);
+
+    int sendModifiedKey(uint32_t key, const vector<uint32_t> & modifiers);
 
     int clickLocation(int clickX, int clickY);
 };

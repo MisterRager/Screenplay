@@ -1,7 +1,3 @@
-//
-// Created by guile on 7/26/20.
-//
-
 #include "lib/screenplay/operations/PrintDirections.h"
 #include "lib/screenplay/directions/ClickRegion.h"
 #include <iostream>
@@ -14,6 +10,12 @@ int PrintDirections::visit(const class ClickRegion & clickRegion) const {
 
 int PrintDirections::visit(const class PressKey & pressKey) const {
     std::cout << "PressKey " << endl;
-    std::cout << (pressKey.key & 0x00FF) << std::endl;
+    std::cout << (pressKey.key) + 0 << std::endl;
+    return 1;
+}
+
+int PrintDirections::visit(const class EnterText & enterText) const {
+    std::cout << "EnterText" << endl;
+    std::cout << enterText.text << endl;
     return 1;
 }

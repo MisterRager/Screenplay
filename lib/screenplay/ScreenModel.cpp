@@ -2,11 +2,12 @@
 
 #include <iostream>
 #include <filesystem>
+#include <memory>
 #include <rfb/keysym.h>
 
 #define DUMMY_CLICK_LOCATION 0x07FFF
 
-MatchInfo ScreenModel::findTemplate(const std::string& templatePath, int matchMethod) {
+MatchInfo ScreenModel::findTemplate(const std::string &templatePath, int matchMethod) {
     readScreen();
 
     //std::cerr << "Try to read screen as a Mat" << std::endl;
@@ -20,7 +21,7 @@ MatchInfo ScreenModel::findTemplate(const std::string& templatePath, int matchMe
 
     // color in OpenCV is BGR - convert the RGB expected from ScreenModel
     cv::cvtColor(screen, screen, COLOR_RGB2BGR);
-    //cv::imwrite("lastframe_cv.png", screen, {IMWRITE_PNG_COMPRESSION, 100});
+    cv::imwrite("lastframe_cv.png", screen, {IMWRITE_PNG_COMPRESSION, 100});
 
     //std::cerr << "Now read path [" << templatePath << "]" << std::endl;
     Mat matchMe = imread(templatePath, IMREAD_COLOR);
@@ -84,7 +85,7 @@ MatchInfo ScreenModel::findTemplate(const std::string& templatePath, int matchMe
 ScreenBuffer::ScreenBuffer(int width, int height) {
     this->width = width;
     this->height = height;
-    buffer = (uint8_t *) malloc( width * height * sizeof(uint8_t) * 3);
+    buffer = (uint8_t *) malloc(width * height * sizeof(uint8_t) * 3);
 }
 
 ScreenBuffer::~ScreenBuffer() {
@@ -98,21 +99,20 @@ void ScreenModel::readScreen() {
     height = rfb->height;
 
     if (screenBuffer->width != width || screenBuffer->height != height) {
-        free(screenBuffer);
-        screenBuffer = new ScreenBuffer(width, height);
+        screenBuffer = std::make_unique<ScreenBuffer>(width, height);
     }
 
-     /*
-    cerr <<
-    "Update frame from [" << x << ", " << y << "] width " << w << " height " << h <<
-    " Screen: " << rfb->desktopName <<
-    endl;
-     */
+    /*
+   cerr <<
+   "Update frame from [" << x << ", " << y << "] width " << w << " height " << h <<
+   " Screen: " << rfb->desktopName <<
+   endl;
+    */
 
-    uint8_t * currentPixel = screenBuffer->buffer;
+    uint8_t *currentPixel = screenBuffer->buffer;
 
     // Read Frame info
-    rfbPixelFormat * pf = &rfb->format;
+    rfbPixelFormat *pf = &rfb->format;
     int bpp = pf->bitsPerPixel / 8;
 
     // TODO: just use the same buffer or at least do this with memcpy instead of loops
@@ -124,14 +124,14 @@ void ScreenModel::readScreen() {
             int offset = k * bpp;
 
             unsigned int pixelData;
-            void * rawPixel = rfb->frameBuffer + rowOffset + offset;
+            void *rawPixel = rfb->frameBuffer + rowOffset + offset;
 
-            switch(bpp) {
+            switch (bpp) {
                 case 4:
                     pixelData = *(unsigned int *) rawPixel;
                     break;
                 case 2:
-                    pixelData =  *(unsigned short *) rawPixel;
+                    pixelData = *(unsigned short *) rawPixel;
                     break;
                 default:
                     pixelData = *(unsigned char *) rawPixel;
@@ -151,13 +151,13 @@ void ScreenModel::readScreen() {
     }
 }
 
-int ScreenModel::saveScreen(FILE * file) {
+int ScreenModel::saveScreen(FILE *file) {
     readScreen();
-    uint8_t * srcBuf = screenBuffer->buffer;
+    uint8_t *srcBuf = screenBuffer->buffer;
 
     tjhandle handle = tjInitCompress();
 
-    if(!handle) {
+    if (!handle) {
         const char *err = (const char *) tjGetErrorStr();
         cerr << "TJ Error: " << err << " UNABLE TO INIT TJ Compressor Object" << endl;
         return -1;
@@ -167,7 +167,7 @@ int ScreenModel::saveScreen(FILE * file) {
     int flags = 0;
     int nbands = 3;
 
-    unsigned char* jpegBuf = nullptr;
+    unsigned char *jpegBuf = nullptr;
 
     int width = rfb->width;
     int height = rfb->height;
@@ -192,7 +192,7 @@ int ScreenModel::saveScreen(FILE * file) {
             flags
     );
 
-    if(res != 0) {
+    if (res != 0) {
         const char *err = (const char *) tjGetErrorStr();
         cerr << "TurboJPEG Error: " << err << " UNABLE TO COMPRESS JPEG IMAGE" << endl;
         tjDestroy(handle);
@@ -208,7 +208,7 @@ int ScreenModel::saveScreen(FILE * file) {
     //cleanup
     res = tjDestroy(handle); //should deallocate data buffer
 
-    if(res != 0) {
+    if (res != 0) {
         const char *err = (const char *) tjGetErrorStr();
         cerr << "TurboJPEG Error: " << err << " UNABLE TO PROPERLY CLEAN UP" << endl;
         tjDestroy(handle);
@@ -218,25 +218,22 @@ int ScreenModel::saveScreen(FILE * file) {
     return 0;
 }
 
-ScreenModel::ScreenModel(rfbClient *rfbClient) {
+ScreenModel::ScreenModel(shared_ptr<rfbClient> rfbClient) {
     this->rfb = rfbClient;
-    this->screenBuffer = new ScreenBuffer(rfbClient->width, rfbClient->height);
+    this->screenBuffer = make_unique<ScreenBuffer>(rfbClient->width, rfbClient->height);
 }
 
-ScreenModel::~ScreenModel() {
-    free(screenBuffer);
-}
 
-static int matches(const MatchInfo& match, double minimumConfidence) {
+static int matches(const MatchInfo &match, double minimumConfidence) {
     std::cerr << "matching... how confident? " << match.confidence << std::endl;
     return match.confidence >= minimumConfidence;
 }
 
-int ScreenModel::findFeature(const std::string& featurePath, double minimumConfidence) {
+int ScreenModel::findFeature(const std::string &featurePath, double minimumConfidence) {
     return matches(findTemplate(featurePath), minimumConfidence);
 }
 
-int ScreenModel::findAndClickFeature(const std::string& featurePath, double minimumConfidence) {
+int ScreenModel::findAndClickFeature(const std::string &featurePath, double minimumConfidence) {
     if (!std::filesystem::exists(std::filesystem::path(featurePath))) {
         std::cerr << "Nonexistent Feature File: " << featurePath << std::endl;
         return 0;
@@ -264,7 +261,7 @@ int ScreenModel::clickLocation(int clickX, int clickY) {
 
     // Prep for motion by wiggling:
     ret = SendPointerEvent(
-            rfb,
+            rfb.get(),
             0,
             0,
             DUMMY_CLICK_LOCATION
@@ -276,7 +273,7 @@ int ScreenModel::clickLocation(int clickX, int clickY) {
     }
 
     ret = SendPointerEvent(
-            rfb,
+            rfb.get(),
             rfb->width,
             rfb->height,
             DUMMY_CLICK_LOCATION
@@ -288,7 +285,7 @@ int ScreenModel::clickLocation(int clickX, int clickY) {
     }
     // move to where the click will happen
     ret = SendPointerEvent(
-            rfb,
+            rfb.get(),
             clickX,
             clickY,
             0
@@ -302,7 +299,7 @@ int ScreenModel::clickLocation(int clickX, int clickY) {
     cerr << "Clicking at [" << clickX << ", " << clickY << "]" << endl;
 
     ret = SendPointerEvent(
-            rfb,
+            rfb.get(),
             clickX,
             clickY,
             rfbButton1Mask
@@ -314,7 +311,7 @@ int ScreenModel::clickLocation(int clickX, int clickY) {
     }
 
     ret = SendPointerEvent(
-            rfb,
+            rfb.get(),
             DUMMY_CLICK_LOCATION,
             DUMMY_CLICK_LOCATION,
             0
@@ -329,18 +326,46 @@ int ScreenModel::clickLocation(int clickX, int clickY) {
 }
 
 int ScreenModel::sendKey(uint32_t key) {
-     int ret = SendKeyEvent(rfb, key, true);
+    int ret = SendKeyEvent(rfb.get(), key, true);
 
     if (!ret) {
         cerr << "Failure to send key down " << key << endl;
         return 0;
     }
 
-    ret = SendKeyEvent(rfb, key, false);
+    ret = SendKeyEvent(rfb.get(), key, false);
 
     if (!ret) {
         cerr << "Failure to send key up " << key << endl;
         return 0;
+    }
+
+    return 1;
+}
+
+int ScreenModel::sendModifiedKey(uint32_t key, const vector<uint32_t> &modifiers) {
+    for (auto modifier : modifiers) {
+        int ret = SendKeyEvent(rfb.get(), modifier, true);
+
+        if (!ret) {
+            cerr << "Failure to send key down " << key << endl;
+            return 0;
+        }
+    }
+
+    if (!sendKey(key)){
+        cerr << "Failure to send key " << key << endl;
+        return 0;
+    }
+
+
+    for (auto modifier : modifiers) {
+        int ret = SendKeyEvent(rfb.get(), modifier, false);
+
+        if (!ret) {
+            cerr << "Failure to send key down " << key << endl;
+            return 0;
+        }
     }
 
     return 1;

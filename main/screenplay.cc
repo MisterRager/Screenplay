@@ -53,11 +53,11 @@ static int writeFrameToFile(rfbClient * client, char * framePath) {
 
 const char * FRAME_FILENAME = "lastframe.jpg";
 
-void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
+void loop(shared_ptr<rfbClient> client, shared_ptr<vector<Scene *>> script) {
     int quitting = 0;
 
     auto executeScript = [&client, &quitting, &script]() {
-        CurrentVncState * state = getAppState(client);
+        CurrentVncState * state = getAppState(client.get());
         int currentStep = -1;
 
         ScreenModel * screenModel = state->screenModel;
@@ -68,7 +68,7 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
                 cerr << "No updates on frame - wait a second" << endl;
 
                 int result = SendFramebufferUpdateRequest(
-                        client,
+                        client.get(),
                         0, 0,
                         client->width, client->height,
                         false // not incremental
@@ -88,9 +88,9 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
             int oldStep = currentStep;
 
             if (currentStep == -1) {
-                for (int k = 0, stepCount = script.get()->size(); k < stepCount && k != currentStep; k++) {
+                for (int k = 0, stepCount = script->size(); k < stepCount && k != currentStep; k++) {
                     std::cerr << "Check if screen [" << k << "] is active" << std::endl;
-                    if (script.get()->at(k)->isActive(screenModel)) {
+                    if (script->at(k)->isActive(screenModel)) {
                         std::cerr << "Screen " << k << " is active." << std::endl;
                         currentStep = k;
                     }
@@ -107,16 +107,16 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
 
 
             std::cerr << "Check if current step is active for using, now (" << currentStep << ")" << std::endl;
-            if (script.get()->at(currentStep)->isActive(screenModel)) {
+            if (script->at(currentStep)->isActive(screenModel)) {
                 std::cerr << "Perfoming step " << currentStep << std::endl;
-                if (script.get()->at(currentStep)->perform(screenModel)) {
+                if (script->at(currentStep)->perform(screenModel)) {
                     cerr << "Scene " << currentStep << " performed" << endl;
                 } else {
                     cerr << "Error performing scene " << currentStep << endl;
                 }
             } else {
                 std::cerr << "Ok, now checking if next step is ready " << currentStep + 1 << std::endl;
-                if (script.get()->at(currentStep + 1)->isActive(screenModel)) {
+                if (script->at(currentStep + 1)->isActive(screenModel)) {
                     currentStep += 1;
                     cerr << "Moving to step " << currentStep;
                 }
@@ -128,7 +128,7 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
                 cerr << "No changes reported, request an update" << endl;
 
                 int result = SendFramebufferUpdateRequest(
-                        client,
+                        client.get(),
                         0, 0,
                         client->width, client->height,
                         false // not incremental
@@ -138,7 +138,7 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
                     cerr << "Error requesting update" << endl;
                 }
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                std::this_thread::sleep_for(std::chrono::milliseconds(2000));
             }
 
         } while ((script.get()->size() - currentStep) > 0);
@@ -149,10 +149,10 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
 
     auto saveFrames = [&client, &quitting]() {
         while (!quitting) {
-            CurrentVncState * state = getAppState(client);
+            CurrentVncState * state = getAppState(client.get());
 
             if (state->frameCount > state->lastSavedFrame) {
-                writeFrameToFile(client, (char *) FRAME_FILENAME);
+                writeFrameToFile(client.get(), (char *) FRAME_FILENAME);
                 state->lastSavedFrame = state->frameCount;
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
             }
@@ -163,10 +163,10 @@ void loop(rfbClient *client, shared_ptr<vector<Scene *>> script) {
     thread frameSaver(saveFrames);
 
     while (!quitting) {
-        if (WaitForMessage(client, 50) < 0)
+        if (WaitForMessage(client.get(), 50) < 0)
             break;
 
-        if (!HandleRFBServerMessage(client))
+        if (!HandleRFBServerMessage(client.get()))
             break;
     }
 
@@ -213,12 +213,14 @@ int main(int argc, char ** argv) {
         exit(1);
     }
 
+    //printScreenplay(*scenes);
+
     cerr << "Starting \"Screenplay\" remote scripting engine..." << endl;
 
-    rfbClient * vnc = nullptr;
+    shared_ptr<rfbClient> vnc;
     CurrentVncState state;
 
-    vnc = rfbGetClient(8, 3, 4);
+    vnc = shared_ptr<rfbClient>(rfbGetClient(8, 3, 4));
 
     // Sign up vnc callbacks
     if (argc < 3) {
@@ -236,14 +238,14 @@ int main(int argc, char ** argv) {
     state.lastSavedFrame = 0;
     state.screenModel = new ScreenModel(vnc);
 
-    rfbClientSetClientData(vnc, vnc, &state);
+    rfbClientSetClientData(vnc.get(), vnc.get(), &state);
 
     cerr << "Connecting!" << endl;
 
     int argcFake = 2;
     char * argvFake[3] = { argv[0], argv[2], argv[3] };
 
-    if (!rfbInitClient(vnc, &argcFake, argvFake)) {
+    if (!rfbInitClient(vnc.get(), &argcFake, argvFake)) {
         std::cerr << "Error initializing connection: " << strerror(errno) << endl;
         return 1;
     }
@@ -254,7 +256,7 @@ int main(int argc, char ** argv) {
 
     cerr << "Tearing down!" << endl;
 
-    rfbClientCleanup(vnc);
+    rfbClientCleanup(vnc.get());
 
     cerr << "Done!" << endl;
 

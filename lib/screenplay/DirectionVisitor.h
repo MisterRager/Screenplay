@@ -7,11 +7,13 @@
 
 class PressKey;
 class ClickRegion;
+class EnterText;
 
 class DirectionVisitor {
 public:
     virtual int visit(const class PressKey & pressKey) const = 0;
     virtual int visit(const class ClickRegion & clickRegion) const = 0;
+    virtual int visit(const class EnterText & enterText) const = 0;
 };
 
 

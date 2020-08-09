@@ -4,6 +4,11 @@
 #include <cfloat>
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
+
+#include "directions/ClickRegion.h"
+#include "directions/PressKey.h"
+#include "directions/EnterText.h"
 
 namespace fs = std::filesystem;
 
@@ -91,6 +96,9 @@ std::vector<DirectionVisitable *> *ScriptParser::parseDirections(
                     for (char const &c: input) {
                         directions->push_back(new PressKey(0xFF00 | std::abs(c)));
                     }
+                } else if (key == "enterText") {
+                    std::cerr << directions->size() << " directions becomes..." << std::endl;
+                    directions->push_back(new EnterText(dirKV.second.as<std::string>()));
                 }
             }
         }
