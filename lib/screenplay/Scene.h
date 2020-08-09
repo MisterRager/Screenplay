@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <vector>
+#include <memory>
 
 #include <rfb/rfbclient.h>
 
@@ -17,12 +18,12 @@ public:
             std::string name,
             std::string templatePath,
             double templateCertainty,
-            vector<DirectionVisitable *> * directionList
+            std::shared_ptr<vector<DirectionVisitable *>> directionList
     ) :
     name(std::move(name)),
     matchTemplatePath(std::move(templatePath)),
     matchCertainty(templateCertainty),
-    directions(directionList)
+    directions(std::move(directionList))
     {};
 
     ~Scene();
@@ -30,7 +31,7 @@ public:
     const std::string name;
     const std::string matchTemplatePath;
     double matchCertainty;
-    vector<DirectionVisitable *> * directions;
+    std::shared_ptr<vector<DirectionVisitable *>> directions;
 };
 
 

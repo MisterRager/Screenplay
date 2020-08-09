@@ -15,8 +15,10 @@ public:
     std::vector<Scene *> *parseScreenplay(const std::string &screenplayPathStr);
 
 private:
-    static std::vector<DirectionVisitable *> *
-    parseDirections(const std::string &basePath, const YAML::Node &directionsValue);
+    static shared_ptr<std::vector<DirectionVisitable *>> parseDirections(
+            const std::string &basePath,
+            const YAML::Node &directionsValue
+    );
 
     static ClickRegion *parseClickTarget(const std::string &basePath, const YAML::Node &clickTargetValue);
 };

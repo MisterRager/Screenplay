@@ -5,6 +5,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
+#include <memory>
 
 #include "directions/ClickRegion.h"
 #include "directions/PressKey.h"
@@ -13,7 +14,7 @@
 namespace fs = std::filesystem;
 
 std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenplayPathStr) {
-    auto results = new std::vector<Scene *>;
+    auto results =  new std::vector<Scene *>;
     YAML::Node config = YAML::LoadFile(screenplayPathStr);
 
     fs::path playPath(screenplayPathStr);
@@ -21,14 +22,15 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
     if (config.IsSequence()) {
         for (const auto &scene : config) {
             if (scene.IsMap()) {
-                bool hasName, hasPath, hasConfidence;
+                bool hasName, hasPath, hasConfidence, hasDirections;
                 hasName = false;
                 hasPath = false;
                 hasConfidence = false;
+                hasDirections = false;
 
                 std::string name, path;
                 double confidence = 0;
-                std::vector<DirectionVisitable *> *directions = nullptr;
+                shared_ptr<std::vector<DirectionVisitable *>> directions = nullptr;
 
                 for (const auto &keyValue : scene) {
                     auto key = keyValue.first.as<std::string>();
@@ -44,10 +46,11 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
                         hasConfidence = true;
                     } else if (key == "directions") {
                         directions = parseDirections(playPath.parent_path().u8string(), keyValue.second);
+                        hasDirections = true;
                     }
                 }
 
-                if (hasName && hasPath && hasConfidence) {
+                if (hasName && hasPath && hasConfidence && hasDirections) {
                     results->push_back(
                             new Scene(
                                     name,
@@ -56,8 +59,6 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
                                     directions
                             )
                     );
-                } else if (directions) {
-                    free(directions);
                 }
             }
         }
@@ -66,11 +67,11 @@ std::vector<Scene *> *ScriptParser::parseScreenplay(const std::string &screenpla
     return results;
 }
 
-std::vector<DirectionVisitable *> *ScriptParser::parseDirections(
+std::shared_ptr<std::vector<DirectionVisitable *>> ScriptParser::parseDirections(
         const std::string &basePath,
         const YAML::Node &directionsValue
 ) {
-    auto directions = new std::vector<DirectionVisitable *>;
+    auto directions = make_shared<std::vector<DirectionVisitable *>>();
 
     for (const auto &directionNode: directionsValue) {
         if (directionNode.IsMap()) {
