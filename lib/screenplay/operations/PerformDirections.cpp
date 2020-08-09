@@ -2,6 +2,8 @@
 #include <iostream>
 #include <cctype>
 
+PerformDirections::PerformDirections(shared_ptr<ScreenModel> client)  : client(std::move(client)){}
+
 int PerformDirections::visit(const ClickRegion & clickRegion) const {
     return client->findAndClickFeature(clickRegion.regionPath, clickRegion.regionCertainty);
 }

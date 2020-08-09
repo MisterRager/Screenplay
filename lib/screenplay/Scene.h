@@ -17,12 +17,7 @@ public:
             std::string templatePath,
             double templateCertainty,
             std::shared_ptr<std::vector<std::shared_ptr<DirectionVisitable>>> directionList
-    ) :
-    name(std::move(name)),
-    matchTemplatePath(std::move(templatePath)),
-    matchCertainty(templateCertainty),
-    directions(std::move(directionList))
-    {};
+    );
 
     const std::string name;
     const std::string matchTemplatePath;

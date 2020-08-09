@@ -8,7 +8,7 @@
 
 class Agent {
 public:
-    explicit Agent(std::shared_ptr<ScreenModel> screen) : screen(std::move(screen)) {};
+    explicit Agent(std::shared_ptr<ScreenModel> screen);
 
     /*
     * Check to see if a given current Scene is active

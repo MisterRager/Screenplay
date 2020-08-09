@@ -9,7 +9,8 @@
 
 class EnterText : public DirectionVisitable {
 public:
-    explicit EnterText(std::string text) : text(std::move(text)) {};
+    explicit EnterText(std::string text);
+
     std::string text;
 
     int visit(const class DirectionVisitor &visitor) const override;

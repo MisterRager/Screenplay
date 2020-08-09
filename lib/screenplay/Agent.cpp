@@ -7,6 +7,8 @@
 #include <iostream>
 #include "operations/PerformDirections.h"
 
+Agent::Agent(std::shared_ptr<ScreenModel> screen) : screen(std::move(screen)) {}
+
 bool Agent::isActive(const Scene &scene) {
     if (!std::filesystem::exists(std::filesystem::path(scene.matchTemplatePath))) {
         std::cerr << "Path for template [" << scene.matchTemplatePath << "] does not exist!" << std::endl;

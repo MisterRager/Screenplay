@@ -9,11 +9,12 @@
 
 class ClickRegion : public DirectionVisitable {
 public:
-    ClickRegion(std::string path, double certainty) : DirectionVisitable(), regionPath(std::move(path)), regionCertainty(certainty) {}
+    ClickRegion(std::string path, double certainty);
 
-    int visit(const class DirectionVisitor & visitor) const override;
-    std::string regionPath;
-    double regionCertainty;
+    [[nodiscard]] int visit(const class DirectionVisitor & visitor) const override;
+
+    const std::string regionPath;
+    const double regionCertainty;
 };
 
 

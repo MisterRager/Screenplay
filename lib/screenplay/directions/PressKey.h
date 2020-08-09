@@ -8,7 +8,7 @@
 
 class PressKey : public DirectionVisitable {
 public:
-    explicit PressKey(uint32_t key): DirectionVisitable(), key(key) {}
+    explicit PressKey(uint32_t key);
 
     [[nodiscard]] int visit(const DirectionVisitor & visitor) const override;
 
